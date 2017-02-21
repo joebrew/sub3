@@ -1,0 +1,37 @@
+---
+title: "Sub 3 marathon pace chart"
+author: "Joe Brew"
+date: "February 21, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = NA, 
+               echo = FALSE, 
+               warning = FALSE, 
+               message = FALSE, 
+               error = TRUE, 
+               cache = FALSE)
+```
+
+```{r}
+source('master.R')
+```
+
+```{r, eval = FALSE}
+ggplot(data = final,
+       aes(x = km,
+           y = minutes)) +
+  geom_line()
+```
+
+```{r}
+DT::datatable(final,
+              options = list(pageLength = nrow(final),
+                             buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+                             dom = 'Bfrtip',
+                             fixedHeader = TRUE),
+              extensions = c('Buttons',
+                             'FixedHeader'),
+              rownames = FALSE)
+```
