@@ -1,0 +1,413 @@
+\documentclass[]{tufte-handout}
+
+% ams
+\usepackage{amssymb,amsmath}
+
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \makeatletter
+  \@ifpackageloaded{fontspec}{}{\usepackage{fontspec}}
+  \makeatother
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+  \makeatletter
+  \@ifpackageloaded{soul}{
+     \renewcommand\allcapsspacing[1]{{\addfontfeature{LetterSpace=15}#1}}
+     \renewcommand\smallcapsspacing[1]{{\addfontfeature{LetterSpace=10}#1}}
+   }{}
+  \makeatother
+\fi
+
+% graphix
+\usepackage{graphicx}
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+
+% booktabs
+\usepackage{booktabs}
+
+% url
+\usepackage{url}
+
+% hyperref
+\usepackage{hyperref}
+
+% units.
+\usepackage{units}
+
+
+\setcounter{secnumdepth}{-1}
+
+% citations
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+% pandoc syntax highlighting
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+\newcommand{\ImportTok}[1]{{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+\newcommand{\BuiltInTok}[1]{{#1}}
+\newcommand{\ExtensionTok}[1]{{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\NormalTok}[1]{{#1}}
+
+% longtable
+
+% multiplecol
+\usepackage{multicol}
+
+% strikeout
+\usepackage[normalem]{ulem}
+
+% morefloats
+\usepackage{morefloats}
+
+
+% tightlist macro required by pandoc >= 1.14
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% title / author / date
+\title{Distance running: a new approach to training}
+\author{Joe Brew}
+\date{2017-03-10}
+
+
+\begin{document}
+
+\maketitle
+
+
+
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{knitr::opts_chunk$}\KeywordTok{set}\NormalTok{(}\DataTypeTok{comment =} \OtherTok{NA}\NormalTok{, }\DataTypeTok{echo =} \OtherTok{FALSE}\NormalTok{, }
+    \DataTypeTok{warning =} \OtherTok{FALSE}\NormalTok{, }\DataTypeTok{message =} \OtherTok{FALSE}\NormalTok{, }\DataTypeTok{error =} \OtherTok{TRUE}\NormalTok{, }
+    \DataTypeTok{cache =} \OtherTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\section{Introduction}\label{introduction}
+
+\subsection{The importance of injury}\label{the-importance-of-injury}
+
+Almost all runners experience injury at some point. For \emph{most}
+runners, injury is the primary limiting factor on performance. In high
+school and university teams, it is not uncommon to have up to half a
+team injured at any given time. Injury is such an ever-present factor of
+distance running that many runners take up quasi-superstitious routines
+to ensure its prevention, such as over-protocolozing warm-up and
+cooldown routines, stretching, etc.
+
+\subsection{Elite runners are
+different}\label{elite-runners-are-different}
+
+Elite\footnote{``Elite'' means able to run 1500 meters in 3:40 (men) /
+  4:00 (women), or the marathon in 2:15 (men) / 2:35 (women).} runners
+are exceptional. While much of what sets them apart from ``normal''
+runners has to do with the physiological components which lend
+themselves to speed and endurance (muscle fibers, heart, lungs, etc.),
+an often overlooked characteristic that most elite runners possess (and
+most normal runners do not) is an \emph{abnormally low risk of injury}.
+Many runners are naturally good; the great ones become so because they
+are able to tolerate hard training without succombing to injury.
+
+The limiting factor on many elites' performance is fatigue induced by
+overtraining. For normal runners, injury occurs long before overtraining
+fatigue is ever reached.
+
+\subsection{Elite runners should not be
+copied}\label{elite-runners-should-not-be-copied}
+
+Most training plans for normal runners are essentially copies of elite
+training plans, but with a slight reduction in volume and intensity. If
+elites build a ``base'' during the off-season with long, slow miles,
+then so should normal runners, right? And if elites run 20 kilometers on
+an ``easy'' day between workouts, then surely 10 kilometers is
+appropriate for a non-elite?
+
+The if-the-elites-are-doing-it-so-should-I attitude has caused far more
+harm than good among distance runners. High school junior varsity
+runners often don't make it to their first cross country meet because
+they are nursing an injury from running too much volumne during the
+``base''. Talented college athletes often make it part way through a
+season of hard training before having to taper off due to the appearance
+of multiple semi-injuries. Adult runners often cycle in and out of
+phases of improvement, injury, and regression.
+
+Normal runners are different from elite runners, and their training
+plans should be different too. Not just in volume and intensity, but
+\emph{in concept}. Whereas an elite training plans aims to maximize
+speed and endurance, a non-elite training plan should aim, first and
+foremost, to minimize the risk of injury.
+
+\subsection{More bang for your buck}\label{more-bang-for-your-buck}
+
+In this book, I outline the three core dimensions of training for
+distance running:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Volume
+\item
+  Intensity
+\item
+  Concentration
+\end{enumerate}
+
+Each of these dimensions is closely related to an athlete's fitness as
+well as her risk of injury, but not in the same ways. By identifying and
+quantifying the relationship between each dimension and its effect on
+fitness (``benefit'') and on risk of injury (``cost''), we devise a new
+framework for training distance runners, radically different from the
+orthodoxy.
+
+Though it is not expressly written for working professionals, busy
+stuents or stressed out parents, and does not explicitly stive to reduce
+the amount of time dedicated to training, a pleasant side effect of its
+focus on low volume, high-intensity and concentraing workouts into fewer
+sessions is that it fits well into the schedules of those for whom
+finding the time to train is a chief obstacle in reaching their goals.
+
+This framework, whose philosophy can be summed up simply as ``getting
+the most bang for your buck'', is laid out in the following pages. Enjoy
+
+\section{The 3 dimensions of
+training}\label{the-3-dimensions-of-training}
+
+The effect that a training plan has on a runner is a function of the
+following 3 dimensions:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \emph{Volume:} The total amount of running (measured in minutes,
+  miles, kilometers, etc.)
+\item
+  \emph{Intensity:} The speed of running (measured in pace)
+\item
+  \emph{Concentration:} The ratio of total volume and intensity to
+  number of sessions
+\end{enumerate}
+
+An increase in any dimension makes a training plan ``harder''. And, in
+general, a ``harder'' plan leads to athletes who are both fitter and
+more injury prone.
+
+Traditionally, in regards to our 3 dimensions, most amateur training
+plans are simple copies of elite programs.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-2-1}
+
+For example, whereas an elite athlete marathoner might run 150
+kilometers per week, a high school runner might cover 75 (volume). The
+elite may run perhaps 20\% of their overall volumne at 5k pace or
+faster, and the high school runner will do identically. The elite will
+likely train 6 days a week, one session per day; and the high school
+runner - the exact same thing.
+
+Most taditional training plans strive to identify the ``sweet spot'' -
+somewhere between nothing and 24 hours a day of intense training - where
+the risk of injury is acceptably low yet the training is sufficiently
+hard so as to induce adaptive response.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-3-1}
+
+In other words, a traditional training plan simply plots a runner along
+the red line. Runners whose tolerance for injury is greatest get
+assigned to more difficult programs, while runners who are more injury
+prone end up more to the left on the chart (ie, less difficult
+programs). Elites, with their inherently high resistance to injury, get
+assigned to the hardest programs.
+
+What traditional programs fail to do is realize that \emph{the shape of
+the curve can be changed}. By manipulating the 3 dimensions of training
+- volume, intensity, and concentration - one can achieve a ``harder''
+(and therefore more effective) training regimen without necessarily
+increasing risk of injury.
+
+\subsection{The effect of the
+dimensions}\label{the-effect-of-the-dimensions}
+
+In order to appropriately combine volume, intensity and concentration,
+we must first understand how each dimension affects the runner, both in
+terms of increasing fitness as well as increasing injury.
+
+\subsubsection{Volume}\label{volume}
+
+The more you run, the better you get at it. This simple truth is
+apparent to everyone, from the first-time 5k runner to the elite
+marathoner. However, though the effect of volume on fitness can be
+tremendous, so too can its effect on the likelihood of injury. Too much
+volume is likely the main culprit of most running injuries.
+
+The below chart shows the cost-benefit relationship and its association
+with volume. The more one runs, the more benefit (blue); however, just
+as volume increases fitness, so to does it increase the likelihood
+injury. The relationship between volumne and cost/benefit is linear:
+doubling volume ``doubles'' ones fitness, but also his risk of injury.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-4-1}
+
+\subsection{Intensity}\label{intensity}
+
+The relationship of intensity\footnote{(speed)} with fitness and
+injury\footnote{(cost and benefit)} is slightly more complex. If one
+keeps the same volume, but increases the amount of time spent running at
+race pace, both her fitness and likelihood of injury will increase.
+Unlike volume, however, fitness and injury likelihood do not travel
+collinearly; rather, the gains associated with increased intensity are
+greater than the augmented risk of injury. In other words, with
+increased intensity, the risk of injury grows linearly, but the
+physiological benefits grow exponentially.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-5-1}
+
+\subsection{Concentration}\label{concentration}
+
+Concentration is one of the most overlooked dimensions of distance
+running. Nearly all runners know their total volume (``weekly mileage'')
+and intensity (amount spent running at different paces), but very few
+are fully cognizant of the importance of session concentration. This is
+a surprise, since intuitively all runners know that running a 20k is
+harder than running 4 5ks.
+
+By copying elites, most runners are spreading out their workouts into
+too many sessions. By concentraing the same volume and intensity into
+fewer sessions, however, a runner can increase fitness substantially
+without significantly increasing the risk of injury. In other words, by
+reducing the number of workout days in a week, a runner kills two birds
+with one stone: she both (a) increases the amount of uninterrupted rest
+time her body has to recover between sessions, and (b) she increases the
+difficulty of each session.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-6-1}
+
+\section{From traditional to
+transformational}\label{from-traditional-to-transformational}
+
+Let's work through an example. Jack is a 10k runner who trains 4 days a
+week. Each of his four runs are identical in length, and he spends about
+a quarter of each run going at race pace.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-7-1}
+
+Jack wants to improve. A traditional program might suggest that Jack
+should increase his volume. If Jack doubles his mileage, without
+changing any other aspect of his training program, he'll get
+significantly faster.
+
+\begin{marginfigure}
+\includegraphics{book_files/figure-latex/unnamed-chunk-8-1} \end{marginfigure}
+
+However, by going from baseline to LSD (long slow distance), Jack also
+doubled his risk of injury (since injury and fitness are collinear when
+it comes to volumne).
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-9-1}
+
+To reduce the risk of injury, Jack explores an alternative option:
+keeping his mileage constant, but increasing his speed. Now, instead of
+running only the last quarter of each run at race pace, he runs half of
+each run at race pace.
+
+\begin{marginfigure}
+\includegraphics{book_files/figure-latex/unnamed-chunk-10-1} \end{marginfigure}
+
+The improvement in fitness, relative to the LSD plan, is similar.
+However, the risk of injury is much lower than in the LSD plan.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-11-1}
+
+Having settled firmly on the side of intensity in the volume
+vs.~intensity debate, Jack wonders how else he can improve his fitness.
+One way is to take concentrate his workouts - the same volume and
+intensity - into fewer sessions.
+
+\begin{marginfigure}
+\includegraphics{book_files/figure-latex/unnamed-chunk-12-1} \end{marginfigure}
+
+By eliminating one run (ie, keeping the total weekly volume the same by
+increasing slightly the amount run in each session), Jack manages to
+increase recovery time and workout difficuty. The ``cost'' of this
+approach is low (remember, his overall volume is identical to the
+``baseline'' example), but the advantages are great.
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-13-1}
+
+How else can Jack tweak his program? He has already touched on all three
+dimensions, having decided to keep volume constant, increase intensity,
+and concentrate his workouts into fewer sessions\ldots{}
+
+Jack can improve his fitness even more, with only minor increased risk
+of injury, by \emph{combining} the dimensions of intensity, volume and
+concentration. The overall volume, and intensity remain the same as the
+previous example, but Jack varies his workouts by increasing and
+decreasing their overall times, as well as varying the amount of time in
+each workout spent at race pace.
+
+\begin{verbatim}
+# A tibble: 1 × 2
+   cost  benefit
+  <dbl>    <dbl>
+1   150 341.7114
+\end{verbatim}
+
+\begin{marginfigure}
+\includegraphics{book_files/figure-latex/unnamed-chunk-14-1} \end{marginfigure}
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-15-1}
+
+\section{Compare Jack's original plan (baseline) with his final
+(optimal)
+one.}\label{compare-jacks-original-plan-baseline-with-his-final-optimal-one.}
+
+\includegraphics{book_files/figure-latex/unnamed-chunk-16-1}
+
+The overall weekly volume (amount of time spent running) is identical,
+the intensity is slightly greater, and the concentration is greater. The
+``cost'' of the ``optimal'' workout plan is only slightly higher than in
+the ``baseline'' plan, but the benefits are far greater.
+
+\bibliography{skeleton.bib}
+
+
+
+\end{document}

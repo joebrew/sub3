@@ -1,0 +1,559 @@
+---
+title: '3D DISTANCE RUNNING'
+author: "Joe Brew"
+date: '`r Sys.Date()`'
+output:
+  tufte::tufte_html: default
+  tufte::tufte_handout:
+    citation_package: natbib
+    latex_engine: xelatex
+  tufte::tufte_book:
+    citation_package: natbib
+    latex_engine: xelatex
+link-citations: yes
+subtitle: A framework for maximizing speed and minimizing risk
+bibliography: skeleton.bib
+---
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(comment = NA, 
+               echo = FALSE, 
+               warning = FALSE, 
+               message = FALSE, 
+               error = TRUE, 
+               cache = FALSE)
+```
+
+```{r setup, include=FALSE}
+library(tufte)
+library(tidyverse)
+
+# invalidate cache when the tufte version changes
+knitr::opts_chunk$set(tidy = FALSE, cache.extra = packageVersion('tufte'))
+options(htmltools.dir.version = FALSE)
+
+library(tidyverse)
+
+# Function evaluate ONE day's workout
+evaluate <- function(percent_at_pace = 0,
+                     total_time = 100){
+  time_at_pace <- (percent_at_pace / 100) * total_time
+  time_slow <- total_time - time_at_pace
+  cost <- total_time + time_at_pace
+  benefit <- time_slow + ((time_at_pace)^1.5)
+  out <- data_frame(cost = cost,
+                    benefit = benefit)
+  return(out)
+}
+
+# Create training week data
+create_tw <- function(training_days = 4,
+                      times = c(25, 25, 25, 25),
+                      percents = c(50, 50, 50, 50)){
+  out <- data_frame(day = 1:7,
+                    time = NA,
+                    percent = NA)
+  # Get some indexes for training days
+  the_order <- c(4,2,6,7,1,3,5)
+  indexes <- the_order[1:training_days]
+  out$time[indexes] <- times
+  out$percent[indexes] <- percents
+  
+  # NAs to 0s
+  out$time[is.na(out$time)] <- 0
+  out$percent[is.na(out$percent)] <- 0
+  
+  return(out)
+}
+
+# Wrapper to evaluate week
+evaluate_week <- function(week){
+  results <- list()
+  for (i in 1:nrow(week)){
+    results[[i]] <-
+      evaluate(percent_at_pace = week$percent[i],
+               total_time = week$time[i])
+  }
+  out <- bind_rows(results)
+  
+  # Aggregate
+  out <- out %>% summarise(cost = sum(cost), benefit = sum(benefit))
+  
+  return(out)
+}
+
+
+plot_week <- function(week){
+  the_eval <- evaluate_week(week)
+  week$fast_time <- (week$percent / 100) * week$time
+  week$slow_time <- week$time - week$fast_time
+  week <- week %>%
+    dplyr::select(day, slow_time, fast_time)
+  week <- gather(week, key, value, slow_time:fast_time)
+  week$key <- gsub('_time', '', week$key)
+  week$key <- factor(week$key, levels = c('slow', 'fast'))
+  ggplot(data = week,
+         aes(x = day,
+             y= value,
+             group = key,
+             fill = key)) +
+    geom_bar(stat = 'identity',
+             position = 'stack') +
+    theme_bw() +
+    scale_fill_manual(name = 'Pace',
+                      values = c('darkgreen', 'darkorange')) +
+    labs(x = 'Day of week',
+         y = 'Volume',
+         subtitle = paste0(length(unique(week$day[week$value > 0])),
+                           ' days of running, Cost = ',
+                           round(the_eval$cost),
+                           ', Benefit = ',
+                           round(the_eval$benefit)
+                           
+                           ))
+}
+
+progression <- data_frame(name = c('Baseline',
+                                   'LSD',
+                                   'Intense',
+                                   'Busy',
+                                   'Optimal'),
+                          cost = NA,
+                          benefit = NA)
+progression <- data.frame(progression)
+
+```
+
+For my sister Anna and friends Jeff and Will
+
+# Introduction
+
+## The importance of injury
+
+Almost all runners experience injury at some point. For _most_ runners, injury is the primary limiting factor on performance. In high school and university teams, it is not uncommon to have up to half a team injured at any given time. Injury is such an ever-present factor of distance running that many runners take up quasi-superstitious routines to ensure its prevention, such as over-protocolozing warm-up and cooldown routines, stretching, etc.
+
+## Elite runners are different
+
+Elite^["Elite" means able to run 1500 meters in 3:40 (men) / 4:00 (women), or the marathon in 2:15 (men) / 2:35 (women).] runners are exceptional. While much of what sets them apart from "normal" runners has to do with the physiological components which lend themselves to speed and endurance (muscle fibers, heart, lungs, etc.), an often overlooked characteristic that most elite runners possess (and most normal runners do not) is an _abnormally low risk of injury_. Many runners are naturally good; the great ones become so because they are able to tolerate hard training without succombing to injury.
+
+The limiting factor on many elites' performance is fatigue induced by overtraining. For normal runners, injury occurs long before overtraining fatigue is ever reached.
+
+## Elite runners should not be copied
+
+Most training plans for normal runners are essentially copies of elite training plans, but with a slight reduction in volume and intensity. If elites build a "base" during the off-season with long, slow miles, then so should normal runners, right? And if elites run 20 kilometers on an "easy" day between workouts, then surely 10 kilometers is appropriate for a non-elite? 
+
+The if-the-elites-are-doing-it-so-should-I attitude has caused far more harm than good among distance runners. High school junior varsity runners often don't make it to their first cross country meet because they are nursing an injury from running too much volumne during the "base". Talented college athletes often make it part way through a season of hard training before having to taper off due to the appearance of multiple semi-injuries. Adult runners often cycle in and out of phases of improvement, injury, and regression.
+
+Normal runners are different from elite runners, and their training plans should be different too. Not just in volume and intensity, but _in concept_. Whereas an elite training plans aims to maximize speed and endurance, a non-elite training plan should aim, first and foremost, to minimize the risk of injury.
+
+## More bang for your buck
+
+In this paper, I outline the three core dimensions of training for distance running:
+
+1. Volume
+2. Intensity
+3. Concentration
+
+Taken together, a plan which encompasses all three dimensions is "3D" - three dimensional. Each of these dimensions is closely related to an athlete's fitness as well as her risk of injury, but not in the same ways. By identifying and quantifying the relationship between each dimension and its effect on fitness ("benefit") and on risk of injury ("cost"), we devise a new framework for training distance runners, radically different from the orthodoxy. 
+
+Though it is not expressly written for working professionals, busy stuents or stressed out parents, and does not explicitly stive to reduce the amount of time dedicated to training, a pleasant side effect of its focus on low volume, high-intensity and concentraing workouts into fewer sessions is that it fits well into the schedules of those for whom finding the time to train is a chief obstacle in reaching their goals.
+
+This framework, whose philosophy can be summed up simply as "getting the most bang for your buck", is laid out in the following pages. Enjoy
+
+# The 3 dimensions of training
+
+The effect that a training plan has on a runner is a function of the following 3 dimensions:
+
+1. *Volume:* The total amount of running (measured in minutes, miles, kilometers, etc.)
+2. *Intensity:* The speed of running (measured in pace)
+3. *Concentration:* The ratio of total volume and intensity to number of sessions
+
+An increase in any dimension makes a training plan "harder". And, in general, a "harder" plan leads to athletes who are both fitter and more injury prone. 
+
+Traditionally, in regards to our 3 dimensions, most amateur training plans are simple copies of elite programs.
+
+
+
+```{r}
+df <- data_frame(who = c('elite', 'amateur'),
+                 volume = c(150, 75),
+                    intensity = c(10, 7.5),
+                    concentration = c(7, 7))
+df <- gather(df, 
+             key, 
+             value, 
+             volume:concentration)
+df$key <- factor(df$key,
+                 levels = rev(df$key))
+
+ggplot(data = df,
+       aes(x = who,
+           y = value)) +
+  geom_bar(stat = 'identity',
+           position = 'dodge',
+           alpha = 0.6,
+           fill = 'darkorange') +
+  facet_wrap(~key, scales = 'free_y') +
+  labs(x = '',
+       y = 'Value',
+       title = 'Elite vs. amateur training plans',
+       subtitle = 'The same, just less') +
+  theme_bw()
+```
+
+For example, whereas an elite athlete marathoner might run 150 kilometers per week, a high school runner might cover 75 (volume). The elite may run perhaps 20% of their overall volumne at 5k pace or faster, and the high school runner will do identically. The elite will likely train 6 days a week, one session per day; and the high school runner - the exact same thing.
+
+Most taditional training plans strive to identify the "sweet spot" - somewhere between nothing and 24 hours a day of intense training - where the risk of injury is acceptably low yet the training is sufficiently hard so as to induce adaptive response.
+
+```{r}
+df <- data_frame(Difficult = 1:100,
+                 `Risk of injury` = (seq(1, 10, length = 100))^2)
+ggplot(data = df,
+       aes(x = Difficult,
+           y = `Risk of injury`)) +
+  geom_line(color = 'red') +
+  theme_bw() +
+  labs(title = 'The difficulty - injury risk trade-off')
+```
+
+In other words, a traditional training plan simply plots a runner along the red line. Runners whose tolerance for injury is greatest get assigned to more difficult programs, while runners who are more injury prone end up more to the left on the chart (ie, less difficult programs). Elites, with their inherently high resistance to injury, get assigned to the hardest programs.
+
+What traditional programs fail to do is realize that _the shape of the curve can be changed_.  By manipulating the 3 dimensions of training - volume, intensity, and concentration - one can achieve a "harder" (and therefore more effective) training regimen without necessarily increasing risk of injury. 
+
+## The effect of the dimensions
+
+In order to appropriately combine volume, intensity and concentration, we must first understand how each dimension affects the runner, both in terms of increasing fitness as well as increasing injury.
+
+### Volume
+
+The more you run, the better you get at it. This simple truth is apparent to everyone, from the first-time 5k runner to the elite marathoner. However, though the effect of volume on fitness can be tremendous, so too can its effect on the likelihood of injury. Too much volume is likely the main culprit of most running injuries.
+
+The below chart shows the cost-benefit relationship and its association with volume. The more one runs, the more benefit (blue); however, just as volume increases fitness, so to does it increase the likelihood injury. The relationship between volumne and cost/benefit is linear: doubling volume "doubles" ones fitness, but also his risk of injury.
+
+```{r}
+# What is the effect of volume
+volume <- data_frame(total_time = 1:100,
+                     percent_at_pace = 0)
+results <- list()
+for (i in 1:nrow(volume)){
+  results[[i]] <- 
+    evaluate(percent_at_pace = volume$percent_at_pace[i],
+           total_time = volume$total_time[i])
+}
+final <- bind_rows(results)
+volume <- bind_cols(volume, final)
+# Make long
+volume <- gather(volume, key, value, cost:benefit)
+ggplot(data = volume,
+       aes(x = total_time,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_jitter(alpha = 0.6, width = 2.5) +
+  geom_line() +
+  labs(x = 'Time spent running',
+       y = 'Value',
+       title = 'The benefits of volume',
+       subtitle = 'Holding constant intensity and concentration') +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  theme_bw()
+```
+
+### Intensity
+
+The relationship of intensity^[(speed)] with fitness^[(benefit)] and injury^[(cost)] is slightly more complex. If one keeps the same volume, but increases the amount of time spent running at race pace, both her fitness and likelihood of injury will increase. Unlike volume, however, fitness and injury likelihood do not travel collinearly; rather, the gains associated with increased intensity are greater than the augmented risk of injury. In other words, with increased intensity, the risk of injury grows linearly, but the physiological benefits grow exponentially.
+
+```{r}
+# What is the effect of intensity
+intensity <- data_frame(total_time = rep(50, 100),
+                     percent_at_pace = 1:100)
+results <- list()
+for (i in 1:nrow(intensity)){
+  results[[i]] <- 
+    evaluate(percent_at_pace = intensity$percent_at_pace[i],
+             total_time = intensity$total_time[i])
+}
+final <- bind_rows(results)
+intensity <- bind_cols(intensity, final)
+# Make long
+intensity <- gather(intensity, key, value, cost:benefit)
+ggplot(data = intensity,
+       aes(x = percent_at_pace,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_jitter(alpha = 0.6) +
+  geom_line() +
+  labs(x = 'Percent of running at race pace',
+       y = 'Value',
+       title = 'The benefits of intensity',
+       subtitle = 'Holding constant weekly volume and concentration') +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  theme_bw()
+```
+
+### Concentration
+
+Concentration is one of the most overlooked dimensions of distance running. Nearly all runners know their total volume ("weekly mileage") and intensity (amount spent running at different paces), but very few are fully cognizant of the importance of session concentration. This is a surprise, since intuitively all runners know that running a 20k is harder than running 4 5ks.
+
+By copying elites, most runners are spreading out their workouts into too many sessions. By concentraing the same volume and intensity into fewer sessions, however, a runner can increase fitness substantially without significantly increasing the risk of injury. In other words, by reducing the number of workout days in a week, a runner kills two birds with one stone: she both (a) increases the amount of uninterrupted rest time her body has to recover between sessions, and (b) she increases the difficulty of each session.
+
+```{r}
+# What is the effect of concentration
+concentration <- data_frame(workout_days = 1:7)
+results <- list()
+for (i in 1:nrow(concentration)){
+  total_time <- 100
+  percent_at_pace <- 50
+  n <- i
+  # Create a week with n days
+  this_week <- create_tw(training_days = n,
+                                     times = rep(total_time/n, n),
+                                     percents = rep(percent_at_pace, n))
+  results[[i]] <- evaluate_week(this_week) %>%
+    mutate(workout_days = n)
+}
+concentration <- bind_rows(results)
+concentration <- concentration %>%
+  gather(key, value, cost:benefit)
+ggplot(data = concentration,
+       aes(x = workout_days,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_jitter(alpha = 0.6) +
+  geom_line() +
+  labs(x = 'Number of workout days',
+       y = 'Value',
+       title = 'The benefits of concentration',
+       subtitle = 'Holding constant weekly volume and intensity') +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  theme_bw()
+
+
+```
+
+
+# From traditional to transformational
+
+Let's work through an example. In the below, we'll discuss Jack, a fictitious 10k runner who wants to step up his training. Each program gets a "cost" and "benefit" - both measures are in arbitrary units meant to reflect that program's effects, respectively, on likelihood of injury and increase in fitness.
+
+Jack trains 4 days a week. Each of his four runs are identical in length, and he spends about a quarter of each run going at race pace, as indicated in the below chart.
+
+```{r}
+# Get a sample week
+easy_week <- create_tw(training_days = 4,
+                       times = c(25, 25, 25, 25),
+                       percents = c(25, 25, 25, 25))
+plot_week(easy_week) +
+  labs(title = 'Baseline week')
+this_eval <- evaluate_week(easy_week)
+progression[progression$name == 'Baseline',
+            c('cost',
+              'benefit')] <- as.numeric(this_eval)
+```
+
+Jack wants to improve. 
+
+### LSD: Long Slow Distance
+
+A traditional program might suggest that Jack should increase his volume. If Jack doubles his mileage, without changing any other aspect of his training program, he'll get significantly faster.
+
+```{r}
+# Increase volume, keep same minutes of intensity
+lsd_week <- create_tw(training_days = 4,
+                      times = c(50, 50, 50, 50),
+                      percents = rep(12.5, 4))
+plot_week(lsd_week) +
+  labs(title = 'Increasing volume (LSD approach)')
+```
+
+However, by going from baseline to LSD (long slow distance), Jack also doubled his risk of injury (since injury and fitness are collinear when it comes to volumne).
+
+```{r}
+this_eval <- evaluate_week(lsd_week)
+progression[progression$name == 'LSD',
+            c('cost',
+              'benefit')] <- as.numeric(this_eval)
+progression_long <- progression %>%
+  gather(key, value, cost:benefit)
+ggplot(data = progression_long %>% filter(!is.na(value)),
+       aes(x = name,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_line() +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  labs(x = 'Training regimen',
+       y = 'Value',
+       title = 'Going from baseline to LSD',
+       subtitle = 'More risk, more reward') +
+  theme_bw()
+```
+
+### Increase intensity instead of volume
+
+To reduce the risk of injury, Jack explores an alternative option: keeping his mileage constant, but increasing his speed. Now, instead of running only the last quarter of each run at race pace, he runs half of each run at race pace.
+
+```{r}
+# Keep volume same, increase minutes of intensity
+intense_week <- create_tw(training_days = 4,
+                          times = c(25, 25, 25, 25),
+                          percents = rep(50, 4))
+plot_week(intense_week)
+```
+
+The improvement in fitness, relative to the LSD plan, is similar. However, the risk of injury is much lower than in the LSD plan.
+
+```{r}
+this_eval <- evaluate_week(intense_week)
+progression[progression$name == 'Intense',
+            c('cost',
+              'benefit')] <- as.numeric(this_eval)
+progression_long <- progression %>%
+  gather(key, value, cost:benefit)
+progression_long$name <- factor(progression_long$name,
+                               levels = progression$name)
+ggplot(data = progression_long %>% filter(!is.na(value)),
+       aes(x = name,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_line() +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  labs(x = 'Training regimen',
+       y = 'Value',
+       title = 'Going from LSD to Intense',
+       subtitle = 'Significant reduction in risk of injury')+
+  theme_bw() 
+```
+
+### Reducing the number of workouts
+
+Having settled firmly on the side of intensity in the volume vs. intensity debate, Jack wonders how else he can improve his fitness. One way is to take concentrate his workouts - the same volume and intensity - into fewer sessions.
+
+```{r}
+# Create a busy week - just like intense week, but condensed
+busy_week <- create_tw(training_days = 3,
+                       times = c(33, 33, 34),
+                       percents = c(50, 50, 50))
+plot_week(busy_week)
+```
+
+By eliminating one run (ie, keeping the total weekly volume the same by increasing slightly the amount run in each session), Jack manages to increase recovery time and workout difficuty. The "cost" of this approach is low (remember, his overall volume is identical to the "baseline" example), but the advantages are great.
+
+```{r}
+
+this_eval <- evaluate_week(busy_week)
+progression[progression$name == 'Busy',
+            c('cost',
+              'benefit')] <- as.numeric(this_eval)
+progression_long <- progression %>%
+  gather(key, value, cost:benefit)
+progression_long$name <- factor(progression_long$name,
+                                levels = progression$name)
+ggplot(data = progression_long %>% filter(!is.na(value)),
+       aes(x = name,
+           y = value,
+           group = key,
+           color = key)) +
+  geom_line() +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  labs(x = 'Training regimen',
+       y = 'Value',
+       title = 'Going from Intense to Busy',
+       subtitle = 'Same risk, greater reward') +
+  theme_bw()
+```
+
+### Combining the dimensions
+
+How else can Jack tweak his program? He has already touched on all three dimensions, having decided to keep volume constant, increase intensity, and concentrate his workouts into fewer sessions...
+
+Jack can improve his fitness even more, with only minor increased risk of injury, by _combining_ the dimensions of intensity, volume and concentration. The overall volume, and intensity remain the same as the previous example, but Jack varies his workouts by increasing and decreasing their overall times, as well as varying the amount of time in each workout spent at race pace. 
+
+```{r}
+# Modify the busy week to change the amounts and intensity run
+optimal_week <- create_tw(training_days = 3,
+                          times = c(20, 20, 60),
+                          percents = c(5, 35, 70))
+plot_week(optimal_week)
+```
+
+```{r}
+this_eval <- evaluate_week(optimal_week)
+progression[progression$name == 'Optimal',
+            c('cost',
+              'benefit')] <- as.numeric(this_eval)
+progression_long <- progression %>%
+  gather(key, value, cost:benefit)
+progression_long$name <- factor(progression_long$name,
+                                levels = progression$name)
+final_plot <- ggplot(data = progression_long %>% filter(!is.na(value)),
+                     aes(x = name,
+                         y = value,
+                         group = key,
+                         color = key)) +
+  geom_line() +
+  scale_color_manual(name = '',
+                     values = c('blue', 'red')) +
+  labs(x = 'Training regimen',
+       y = 'Value',
+       title = 'Going from Busy to Optimal',
+       subtitle = 'The power of concentration') +
+  theme_bw()
+final_plot
+```
+
+Compare Jack's original plan (baseline) with his final (optimal) one.
+
+```{r}
+Rmisc::multiplot(plot_week(easy_week) +
+                   labs(title = 'Baseline'),
+                 plot_week(optimal_week) +
+                   labs(title = 'Optimal'),
+                 cols = 2)
+```
+
+The overall weekly volume (amount of time spent running) is identical, the intensity is slightly greater, and the concentration is greater. The "cost" of the "optimal" workout plan is only slightly higher than in the "baseline" plan, but the benefits are far greater.
+
+# Training plans
+
+In this section, we'll go overview four groups of runners, and how the principles of the 3-dimensional training plan can be applied to each. These four groups are:
+
+1. *Couch to 5k*: Beginner runners with no experience and little background fitness. These are athletes who run greater than 30:00 for a 5k.
+
+2. *Weekend warriors and high school runners*: These are athletes who enjoy competing, regularly run distances up to 10 kilometers, but do not run the 5k in under 17:00 (men) or 20:00 (women).
+
+3. *Semi-elite and college runners*: These are athletes with significant experience running. This group runs the 5k between 14:00 and 17:00 (men) and 17:00 and 20:00 (women).
+
+4. *Marathoners*: Marathoners could also be part of groups 2 or 3. However, since the target race distance is so different for marathoners, they get a slightly tweaked program.
+
+## Couch to 5K
+
+## Weekend warrior, high school runners
+
+## Semi-elite, college runners
+
+## Marathon
+
+
+```{r eval=FALSE}
+file.edit(
+  tufte:::template_resources(
+    'tufte_html', '..', 'skeleton', 'skeleton.Rmd'
+  )
+)
+```
+
+```{r bib, include=FALSE}
+# create a bib file for the R packages used in this document
+knitr::write_bib(c('base', 'rmarkdown'), file = 'skeleton.bib')
+```
