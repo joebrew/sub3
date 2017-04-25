@@ -11,7 +11,7 @@ output:
     citation_package: natbib
     latex_engine: xelatex
 link-citations: yes
-subtitle: A framework for maximizing speed and minimizing risk
+subtitle: A framework for maximizing fitness and minimizing injury
 bibliography: skeleton.bib
 ---
 
@@ -125,7 +125,7 @@ progression <- data.frame(progression)
 
 ```
 
-For my sister Anna and friends Jeff and Will
+For Jeff Heitzenrater
 
 # Introduction
 
@@ -536,7 +536,19 @@ In this section, we'll go overview four groups of runners, and how the principle
 
 4. *Marathoners*: Marathoners could also be part of groups 2 or 3. However, since the target race distance is so different for marathoners, they get a slightly tweaked program.
 
+Though the plans differ in intensity and volume, the level of concentration is identical across plans: 3 running days per week, with "easy", "medium" and "hard" days. Relative to traditional plans, even the "easy" day is somewhat difficult, and the "hard" day will be near maximum effort.
+
 ## Couch to 5K
+
+The most important aspect of a beginner's training program is its retention: even the best plan fails if the runner does not adhere to it. In this approach, the 3D approach to training for beginners is ideal: by concentrating workouts into few days, adherence is feasible _and_ injury risk is reduced.
+
+The Couch to 5K plan assumes that, at baseline, the runner is unable to run 5 kilometers continuously. "Race pace", for this beginner, is any pace faster than walking. The progression in training strives to accomplish two goals:
+
+1. Increase the total distance covered.
+
+2. Increase the relative amount of that distance covered at race pace.
+
+
 
 ## Weekend warrior, high school runners
 
