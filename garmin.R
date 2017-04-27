@@ -196,6 +196,81 @@ results$pace <- mps_to_pace(results$speed)
 results$pace[is.infinite(results$pace)] <- NA
 results$pace[results$pace > 100] <- NA
 
+# Get week
+previous_monday <- function(x) 7 * floor(as.numeric(x-1+4) / 7) + as.Date(1-4, origin = "1970-01-01")
+results$week_start <- previous_monday(results$date)
+
+# Get a distance_diff
+results <-
+  results %>%
+  group_by(activity_name) %>%
+  mutate(distance_diff = distance - lag(distance, 1, default = 0)) %>%
+  ungroup
+
+# Get marathon pace, etc.
+results$pace_group <-
+  ifelse(results$pace > 6.5, 'Very slow',
+         ifelse(results$pace > 5, 'Slow',
+                ifelse(results$pace > 4, 'Marathon pace',
+                       'Fast')))
+results$pace_group <- factor(results$pace_group,
+                             levels = rev(sort(unique(results$pace_group))))
+
+x <- results %>%
+  filter(!is.na(pace_group)) %>%
+  group_by(week_start, pace_group) %>%
+  summarise(hours = n() / 60 / 60,
+            km = sum(distance_diff) / 1000) %>%
+  ungroup %>%
+  group_by(week_start) %>%
+  mutate(percent_time = hours / sum(hours) * 100,
+         percent_distance = km / sum(km) * 100) %>%
+  ungroup
+
+library(RColorBrewer)
+cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(4)
+cols <- rev(cols)
+ggplot(data = x %>% filter(!is.na(pace_group)),
+       aes(x = week_start,
+           y = hours,
+           fill = pace_group)) +
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By time spent running')
+ggplot(data = x %>% filter(!is.na(pace_group)),
+       aes(x = week_start,
+           y = km,
+           fill = pace_group)) +
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By distance')
+
+ggplot(data = x %>% filter(!is.na(pace_group)),
+       aes(x = week_start,
+           y = percent_distance,
+           fill = pace_group)) +
+  geom_area(stat = 'identity') +
+  labs(x = 'Week',
+       y = 'Percent',
+       title = 'Pace distribution',
+       subtitle = 'Amount of time running at different paces') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By time spent running')
+
 # Create pace curve
 pc <- 
   results %>%
@@ -212,6 +287,24 @@ ggplot(data = pc %>%
            y = speed)) +
   geom_line() +
   facet_wrap(~activity_name)
+
+# Histogram of pace
+ggplot(data = results %>%
+         filter(pace <= 8),
+       aes(x = pace)) +
+  geom_density(fill = 'darkblue',
+               alpha = 0.5) +
+  labs(x = 'Minutes per kilometer',
+       y = 'Density',
+       title = 'Overall distribution of pace',
+       subtitle = 'Peak at marathon pace, plateau at easy run pace')
+ggplot(data = results %>%
+         filter(pace <= 8),
+       aes(x = pace)) +
+  geom_histogram(fill = 'darkblue',
+               alpha = 0.5) 
+
+
 
 # # Define function converting kph to pace per k
 # kph_to_pace <- function(x){
@@ -244,12 +337,32 @@ by_day <- results %>%
   ungroup
 # 
 library(ggplot2)
-ggplot(data = by_day,
+ggplot(data = by_day %>%
+         mutate(marathon_pace = ifelse(marathon_pace,
+                                       'Marathon pace',
+                                       'Other')),
        aes(x = date,
-           y = distance,
+           y = distance / 1000,
            group = marathon_pace,
            fill = marathon_pace)) +
-  geom_bar(stat = 'identity', position = 'stack')
+  geom_bar(stat = 'identity', position = 'dodge',
+           alpha = 0.6) +
+  labs(x = 'Date',
+       y = 'Kilometers') +
+  scale_fill_manual(name = 'Pace',
+                    values = c('blue', 'darkred'))
+
+ggplot(data = results %>%
+         filter(pace <= 10),
+       aes(x = pace,
+           group = activity_name)) +
+  geom_density(alpha = 0.3,
+               fill = 'grey') +
+  labs(x = 'Minutes per kilometer',
+       ylab = 'Density',
+       title = 'Run-specific pace distribution',
+       subtitle = 'Each shape is one run')
+
 # 
 
 # Get by week
@@ -349,20 +462,30 @@ results <-
 #   coord_map() +
 #   theme_map()
 print(head(results))
-g <- ggplot(data = results,
+ggplot(data = results,
        aes(x = longitude,
            y = latitude,
            group = activity_name)) +
-  geom_path(#aes(color = altitude),
-            alpha = 0.6,
-            color = 'darkred',
-             size = 0.1) +
+  geom_path(#aes(color = pace),
+            alpha = 0.7,
+            color = 'black',
+             size = 0.01) +
   coord_map() +
   theme_map() +
   # scale_color_continuous_tableau('Red',
   #                                name = 'Elevation') +
   theme(legend.key.size = unit(2, 'mm')) 
-print(g)
+
+
+ggplot(data = results,
+       aes(x = longitude,
+           y = latitude)) +
+  geom_point(
+    alpha = 0.1,
+    color = 'darkred',
+    size = 0.02) +
+  coord_map() +
+  theme_map() 
 
 # 
 # ggplot(data = results %>%
