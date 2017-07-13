@@ -1,220 +1,25 @@
-# library(cycleRtools)
-library(xml2)
-library(XML)
-library(tidyverse)
+# Get and clean up data
+source('garmin_prepare.R')
 
-# Define a directory with the txc files
-tcx_dir <- '/home/joebrew/Dropbox/Aplicaciones/tapiriik/'
-files <- dir(tcx_dir)
-# files <- files[length(files)]
-original_files <- files
-files <- file.path(tcx_dir, files)
-file <- files
+# HEAT MAP
+# Create heat map
+# heat_data <- 
+#   results %>%
+#   mutate(latitude = round(latitude, digits = 4),
+#          longitude = round(longitude, digits = 4)) %>%
+#   group_by(longitude, 
+#            latitude) %>%
+#   tally %>%
+#   mutate(val = log(n) + 1)
 
-# Define function for reading tcx files
-read_tcx <- function(file){
-  message(paste0('Reading file ', 
-                 file))
-  
-  x <- xmlToList(file)
-  y <- plyr::ldply(x, data.frame)
-  # Keep only the first row
-  y <- y[1,]
-  # Keep lap information elsewhere
-  lap_info <- y[,grepl('Activity.Lap', names(y)) & !grepl('Trackpoint', names(y))]
-  # Keep only those columns which contain tracking
-  y <- y[,grepl('Activity.Lap.Track.Trackpoint', names(y))]
+# library(leaflet)
+# leaflet() %>%
+#   addTiles() %>%
+#   addMarkers(data = heat_data,
+#                lng = ~longitude,
+#                lat = ~latitude)
 
-  # Define helper for cleaning_up
-  clean_up <- function(df){
-    df <- t(df)
-    df <- data.frame(df)
-    df$indicator <- row.names(df)
-    df$value <- df$X1
-    row.names(df) <- NULL
-    df$X1 <- NULL
-    # Remove the useless parts of indicator
-    df$indicator <- gsub('Activity.Lap.Track.Trackpoint.',
-                        '',
-                        df$indicator)
-    
-    # Extract the number from indicator
-    numbers <- regmatches(df$indicator, 
-                          gregexpr("[[:digit:]]+", df$indicator))
-    numbers <- lapply(numbers, 
-                      function(x){
-                        out <- unlist(x)
-                        if(length(out) == 0){
-                          out <- NA
-                        }
-                        return(out)
-                      })
-    numbers <- unlist(numbers)
-    df$number <- numbers
-    df$number <- as.numeric(as.character(df$number))
-    df$number[is.na(df$number)] <- 0
-    # Increase number by 1
-    df$number <- df$number + 1
-    
-    # Remove the number from indicator
-    df$indicator <- gsub('[[:digit:]]+', 
-                        '',
-                        df$indicator)
-    df$indicator <- as.character(df$indicator)
-    df$value <- as.character(df$value)
-    # remove trailing periods
-    df$indicator <-
-      gsub("\\.(?=\\.*$)", "", df$indicator, perl=TRUE)
-    return(df)
-  }
-  
-  # Clean up lap info
-  lap_info <- clean_up(lap_info)
-  # Clean up names
-  lap_info <-
-    lap_info %>%
-    mutate(indicator = gsub('Activity.Lap.',
-                            '',
-                            indicator))
-  # Keep only relevant indicators
-  lap_info <-
-    lap_info %>%
-    filter(indicator == 'DistanceMeters')
-  # Get cumulative distance
-  # lap_info$cumulative_seconds <- cumsum(lap_info$value)
-  lap_info$distance <- cumsum(lap_info$value)
-  
-  # Clean up trackpoint info
-  z <- clean_up(y)
-  
-  # Group by number and get values
-  out <- z %>%
-    dplyr::group_by(number) %>%
-    summarise(altitude = dplyr::first(value[indicator == 'AltitudeMeters']),
-              distance = dplyr::first(value[indicator == 'DistanceMeters']),
-              cadence = dplyr::first(value[indicator == 'Extensions.TPX.RunCadence']),
-              speed = dplyr::first(value[indicator == 'Extensions.TPX.Speed']),
-              latitude = dplyr::first(value[indicator == 'Position.LatitudeDegrees']),
-              longitude = dplyr::first(value[indicator == 'Position.LongitudeDegrees']),
-              time = dplyr::first(value[indicator == 'Time'])) %>%
-    mutate(altitude = as.numeric(altitude),
-           distance = as.numeric(distance),
-           cadence = as.numeric(cadence),
-           speed = as.numeric(speed),
-           latitude = as.numeric(latitude),
-           longitude = as.numeric(longitude))
-  # Bring in lap info
-  out$lap <- 0
-  for (i in 1:nrow(lap_info)){
-    if(i == 1){
-      lower <- -1
-    } else {
-      lower <- lap_info$distance[i-1]
-    }
-    upper <- lap_info$distance[i]
-    
-    out$lap[out$distance <= upper &
-              out$distance > lower] <-
-      lap_info$number[i]
-  }
-  
-  # Clarify that number is seconds
-  out <-
-    out %>%
-    rename(seconds = number)
-  return(out)
-}
-
-results_list <- list()
-for (i in 1:length(files)){
-  message(i)
-  activity_name <- gsub('.tcx', '',
-                        original_files[i])
-  file_name <- paste0(activity_name,
-                      '.RData')
-  date <- as.Date(substr(activity_name, 1, 10))
-  if(file_name %in% dir('rdatas')){
-    load(paste0('rdatas/', file_name))
-  } else {
-    this_run <- read_tcx(files[i])
-    save(this_run,
-         file = paste0('rdatas/', file_name))
-  }
-  this_run$date <- date
-  this_run$activity_name <- activity_name
-  results_list[[i]] <- this_run
-}
-results <- bind_rows(results_list)
-
-
-
-# # ###############################################
-# # activity_dir <- '/media/joebrew/GARMIN/GARMIN/ACTIVITY/'
-# # plugged_in <- dir.exists(activity_dir)
-# # 
-# # # If connected to device, copy the files to local hard drive
-# # if(plugged_in){
-# #   files <- dir(activity_dir)
-# #   files <- file.path(activity_dir, files)
-# #   
-# #   # Copy to /data
-# #   if(plugged_in){
-# #     for(i in 1:length(files)){
-# #       this_file <- files[i]
-# #       file.copy(from=  this_file,
-# #                 to = paste0('data', gsub(activity_dir, '', this_file)))
-# #       message(this_file)
-# #     }
-# #   }
-# # }
-# # 
-# # # Define local files
-# # local_files <- dir('data')
-# # 
-# # # Read in local files
-# # results <- list()
-# # for (i in 1:length(local_files)){
-# #   try({
-# #     x <- cycleRtools::read_fit(paste0('data/', local_files[i]), 
-# #                                format = TRUE)
-# #     x$activity_number <- i
-# #     x$file <- local_files[i]
-# #     results[[i]] <- x
-# #   })
-# # }
-# # 
-# # # Bind all together
-# # results <- bind_rows(results)
-# 
-
-# Define function for converting meters per second
-# to minutes per kilometer
-mps_to_pace <- function(x){
-  1000 / x / 60
-}
-results$pace <- mps_to_pace(results$speed)
-results$pace[is.infinite(results$pace)] <- NA
-results$pace[results$pace > 100] <- NA
-
-# Get week
-previous_monday <- function(x) 7 * floor(as.numeric(x-1+4) / 7) + as.Date(1-4, origin = "1970-01-01")
-results$week_start <- previous_monday(results$date)
-
-# Get a distance_diff
-results <-
-  results %>%
-  group_by(activity_name) %>%
-  mutate(distance_diff = distance - lag(distance, 1, default = 0)) %>%
-  ungroup
-
-# Get marathon pace, etc.
-results$pace_group <-
-  ifelse(results$pace > 6.5, 'Very slow',
-         ifelse(results$pace > 5, 'Slow',
-                ifelse(results$pace > 4, 'Marathon pace',
-                       'Fast')))
-results$pace_group <- factor(results$pace_group,
-                             levels = rev(sort(unique(results$pace_group))))
+# Analaysis by simple pace groups ###################################
 
 x <- results %>%
   filter(!is.na(pace_group)) %>%
@@ -227,8 +32,7 @@ x <- results %>%
          percent_distance = km / sum(km) * 100) %>%
   ungroup
 
-library(RColorBrewer)
-cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(4)
+cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(x$pace_group)))
 cols <- rev(cols)
 ggplot(data = x %>% filter(!is.na(pace_group)),
        aes(x = week_start,
@@ -251,10 +55,9 @@ ggplot(data = x %>% filter(!is.na(pace_group)),
   scale_fill_manual(name = 'Pace',
                     values = cols) +
   labs(x = 'Week',
-       y = 'Hours',
+       y = 'Kilometers',
        title = 'Pace distribution',
        subtitle = 'By distance')
-
 ggplot(data = x %>% filter(!is.na(pace_group)),
        aes(x = week_start,
            y = percent_distance,
@@ -267,11 +70,119 @@ ggplot(data = x %>% filter(!is.na(pace_group)),
   scale_fill_manual(name = 'Pace',
                     values = cols) +
   labs(x = 'Week',
-       y = 'Hours',
+       y = 'Percent of distance run',
        title = 'Pace distribution',
        subtitle = 'By time spent running')
 
-# Create pace curve
+# Analysis by MacMillan pace zone #######################################
+
+x <- results %>%
+  filter(!is.na(zone)) %>%
+  group_by(week_start, zone) %>%
+  summarise(hours = n() / 60 / 60,
+            km = sum(distance_diff) / 1000) %>%
+  ungroup %>%
+  group_by(week_start) %>%
+  mutate(percent_time = hours / sum(hours) * 100,
+         percent_distance = km / sum(km) * 100) %>%
+  ungroup
+x$zone <- factor(x$zone,
+                 levels = rev(sort(unique(x$zone))))
+
+cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(x$zone)))
+# cols <- rev(cols)
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = hours,
+           fill = zone)) +
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By time spent running')
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = km,
+           fill = zone)) +
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By distance')
+
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = percent_distance,
+           fill = zone)) +
+  geom_area(stat = 'identity') +
+  labs(x = 'Week',
+       y = 'Percent',
+       title = 'Pace distribution',
+       subtitle = 'Amount of time running at different paces') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Percent of time running',
+       title = 'Pace distribution',
+       subtitle = 'By distance')
+
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = percent_distance,
+           fill = zone)) +
+  geom_bar(stat = 'identity') +
+  labs(x = 'Week',
+       y = 'Percent',
+       title = 'Pace distribution',
+       subtitle = 'Amount of time running at different paces') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Percent',
+       title = 'Pace distribution',
+       subtitle = 'By distance') +
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = hours,
+           fill = zone)) +
+  geom_bar(stat = 'identity',
+           alpha = 0.7) +
+  labs(x = 'Week',
+       y = 'Percent',
+       title = 'Pace distribution',
+       subtitle = 'Amount of time running at different paces') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Hours',
+       title = 'Pace distribution',
+       subtitle = 'By time spent running') +
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(data = x %>% filter(!is.na(zone)),
+       aes(x = week_start,
+           y = km,
+           fill = zone)) +
+  geom_bar(stat = 'identity',
+           position = 'stack') +
+  scale_fill_manual(name = 'Pace',
+                    values = cols) +
+  labs(x = 'Week',
+       y = 'Kilometers',
+       title = 'Pace distribution',
+       subtitle = 'By distance') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.direction = "horizontal", legend.position = "bottom")
+
+# Pace curves ########################################
 pc <- 
   results %>%
   arrange(activity_name, desc(speed)) %>%
@@ -281,12 +192,11 @@ pc <-
   mutate(p = y / max(y) * 100)
 
 activity_names <- sort(unique(pc$activity_name))
-ggplot(data = pc %>%
-         filter(activity_name %in% activity_names[10:25]),
+ggplot(data = pc,
        aes(x = p,
-           y = speed)) +
-  geom_line() +
-  facet_wrap(~activity_name)
+           y = speed,
+           group = activity_name)) +
+  geom_line(alpha = 0.3) 
 
 # Histogram of pace
 ggplot(data = results %>%
@@ -302,41 +212,15 @@ ggplot(data = results %>%
          filter(pace <= 8),
        aes(x = pace)) +
   geom_histogram(fill = 'darkblue',
-               alpha = 0.5) 
+                 alpha = 0.5) 
 
-
-
-# # Define function converting kph to pace per k
-# kph_to_pace <- function(x){
-#   60 / x
-# }
-# results$pace <- kph_to_pace(results$speed.kmh)
-# results$pace[is.infinite(results$pace)] <- NA
-# 
-# 
-# Define function for being in marathon pace zone
-results <-
-  results %>%
-  mutate(marathon_pace = pace <= 4.6) #4:36
-results$marathon_pace[is.na(results$marathon_pace) |
-                        is.infinite(results$marathon_pace)] <-
-  FALSE
-# # Get a date
-# results <- results %>%
-#   mutate(date = as.Date(timestamp))
-# 
-# Get a diff on the difference
-results <- results %>%
-  group_by(activity_name) %>%
-  mutate(diff_distance = distance - dplyr::lag(distance, default = 0))
-# 
+# How much fast running per day #################################
 # Get how much was at marathon pace for each day
 by_day <- results %>%
   group_by(date, marathon_pace) %>%
-  summarise(distance = sum(diff_distance)) %>%
+  summarise(distance = sum(distance_diff)) %>%
   ungroup
-# 
-library(ggplot2)
+
 ggplot(data = by_day %>%
          mutate(marathon_pace = ifelse(marathon_pace,
                                        'Marathon pace',
@@ -363,14 +247,12 @@ ggplot(data = results %>%
        title = 'Run-specific pace distribution',
        subtitle = 'Each shape is one run')
 
-# 
-
 # Get by week
 by_week <- 
   results %>%
   mutate(week = format(date, '%U')) %>%
   group_by(week, marathon_pace) %>%
-  summarise(distance = sum(diff_distance),
+  summarise(distance = sum(distance_diff),
             runs = length(unique(activity_name))) %>%
   ungroup %>%
   mutate(week = as.numeric(week) - 11) %>%
@@ -382,25 +264,8 @@ ggplot(data = by_week,
            fill = marathon_pace)) +
   geom_bar(stat = 'identity', position = 'stack')
 
-library(cism)
-library(sp)
-library(ggthemes)
-library(ggmap)
-plot(man2)
-# 
-marathon_pace <- 14.0625
-# 
+######### MAPS
 
-# Create a pace curve
-pc <- 
-
-# For now, keep only manhica
-# removing calanga, bilene, komati, etc.
-results <-
-  results %>%
-  filter(round(longitude) == 33,
-         (date < '2017-04-12' | date > '2017-04-13'),
-         date != '2017-03-27')
 
 # x <- get_map(location = results %>%
 #                ungroup %>%
@@ -461,20 +326,115 @@ results <-
 #             size = 0.3) +
 #   coord_map() +
 #   theme_map()
-print(head(results))
-ggplot(data = results,
+
+
+# For now, keep only manhica
+# removing calanga, bilene, komati, etc.
+map_data <- results
+# results %>%
+# filter(round(longitude) == 33,
+#        # (date < '2017-04-12' | date > '2017-04-13'),
+#        date != '2017-03-27',
+#        date != '2017-05-03',
+#        date != '2017-04-13')
+# map_data <- results
+top_n <- map_data %>%
+  filter(!is.na(locality)) %>%
+  group_by(locality) %>%
+  tally %>%
+  ungroup %>%
+  arrange(desc(n))
+n <- length(unique(top_n$locality))
+top_n <- top_n$locality[1:n]
+map_list <- list()
+colors <- colorRampPalette(brewer.pal(n = 9, 'Spectral'))(n)
+colors <- sample(colors, length(colors))
+for (i in 1:length(top_n)){
+  map_list[[i]] <- cool_map(data = map_data %>% filter(locality == top_n[i]),
+                            color = colors[i],
+                            title = top_n[i]) +
+    theme(axis.text.x=element_blank(),axis.ticks.x=element_blank(),
+          plot.margin=unit(c(0,0,0,0), "lines")) +
+    theme(panel.background = element_blank(),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank())
+  
+}
+map_list[[1]] 
+
+multiplot_joe <- function (..., plotlist = NULL, cols = 1, layout = NULL) 
+{
+  require(grid)
+  plots <- c(list(...), plotlist)
+  numPlots = length(plots)
+  if (is.null(layout)) 
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)), 
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  if (numPlots == 1) {
+    print(plots[[1]])
+  }
+  else {
+    grid.newpage()
+    grid.rect(gp=gpar(fill="black",
+                      col = 'black',
+                      alpha = 0,
+                      lwd = 0))
+    pushViewport(viewport(layout = grid.layout(nrow(layout), 
+                                               ncol(layout))))
+    for (i in 1:numPlots) {
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row, 
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+multiplot_joe(plotlist = map_list, cols = 3)
+ggsave('~/Desktop/out.png')
+ggplot(data = map_data %>%
+         filter(#pace < 10,
+           !is.na(locality),
+           locality %in% top_n),
+       # c('Gainesville', 'Manhiça',
+       #                          'Barcelona', 'Santa Coloma de Queralt')),
        aes(x = longitude,
            y = latitude,
            group = activity_name)) +
-  geom_path(#aes(color = pace),
-            alpha = 0.7,
-            color = 'black',
-             size = 0.01) +
-  coord_map() +
-  theme_map() +
-  # scale_color_continuous_tableau('Red',
-  #                                name = 'Elevation') +
-  theme(legend.key.size = unit(2, 'mm')) 
+  theme(axis.text.x=element_blank(),axis.ticks.x=element_blank(),
+        plot.margin=unit(c(0,0,0,0), "lines")) +
+  theme(panel.grid.minor=element_blank(), 
+        panel.grid.major=element_blank(),
+        panel.background=element_blank()) + 
+  theme(plot.background=element_rect(fill="black"),
+        panel.background=element_rect(fill='black'), 
+        legend.background= element_rect(fill="black", colour=NA),
+        legend.key = element_rect(colour = NA, col = "black",
+                                  size = .5, fill = 'black')) +
+  theme(axis.line = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.title = element_blank(), 
+        panel.border = element_blank(), 
+        panel.spacing = unit(0, 
+                             "lines"), 
+        legend.justification = c(0, 0), 
+        legend.position = c(0, 
+                            0)) +
+  geom_path(#aes(size = pace),
+    # linejoin = "mitre", lineend = "round"
+    alpha = 0.2,
+    aes(color = locality),
+    # color = 'yellow', 
+    size = 0.1) +
+  # coord_map() +
+  facet_wrap(~locality,
+             scales = 'free') +
+  theme(legend.position="none") +
+  theme(strip.background = element_rect(fill="black"),
+        strip.text = element_text(color = 'darkgrey', size = 5),
+        plot.title = element_text(size = 7))
+
+ggsave('~/Desktop/plot.pdf')
+  # ggsave('~/Desktop/plot.png')
 
 
 ggplot(data = results,
@@ -518,4 +478,31 @@ ggplot(data = results,
 #             y = marathon_pace)) +
 #   geom_jitter(alpha = 0.3)
 
+
+
+cool_map(data = map_data %>%
+           filter(locality == 'Gainesville'))
+ggsave(filename = '~/Desktop/mapa.png')
+
+world <- borders("world") 
+ggplot() + world +
+  geom_path(data = map_data,
+            aes(x = longitude,
+                y = latitude,
+                group = activity_name),
+            alpha = 0.9,
+            color = 'red', 
+            size = 1)
+
+melon_run <- results %>%
+  # filter(date == '2017-07-04') %>%
+  filter(activity_name == '2017-07-04_Gainesville Running_Running') %>%
+  filter(seconds > 5,
+         seconds <= 1055)
+
+ggplot(data = melon_run,
+       aes(x = seconds,
+           y = pace)) +
+  geom_jitter(size = 0.6) +
+  geom_smooth()
 

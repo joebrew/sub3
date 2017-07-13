@@ -19,6 +19,10 @@ df <- data_frame(date = dates,
 # Get day of week
 df$dow <- weekdays(df$date)
 
+# Days until marathon
+days_until_marathon <- as.Date('2017-10-14') - Sys.Date()
+weeks_until_marathon <- as.numeric(days_until_marathon) / 7
+weeks_until_marathon
 # Idea: 3 workouts per week, with 2, 2 and 4 reps (respectively)
 # of an identical distance at race pace.
 
