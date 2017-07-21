@@ -131,14 +131,16 @@ read_tcx <- function(file, reverse_geocode = TRUE){
     rename(seconds = number)
   
   # Reverse geocode
+  has_gps <- length(out$longitude[!is.na(out$longitude)]) > 0
   if(reverse_geocode){
-    gc <- revgeocode(location = c(out$longitude[1],
-                                  out$latitude[1]),
-                     output = 'more', 
-                     messaging = TRUE)
-    
-    # Join to results
-    out <- cbind(out, gc)
+    if(has_gps){
+      gc <- revgeocode(location = c(out$longitude[!is.na(out$longitude)][1],
+                                    out$latitude[!is.na(out$latitude)][1]),
+                       output = 'more', 
+                       messaging = TRUE)
+      # Join to results
+      out <- cbind(out, gc)
+    }
   }
   
   return(out)
@@ -147,6 +149,8 @@ read_tcx <- function(file, reverse_geocode = TRUE){
 results_list <- list()
 file_names_list <- c()
 file_names_list_counter <- 0
+files <- files[grepl('Running', files)]
+original_files <- original_files[grepl('Running', original_files)]
 for (i in 1:length(files)){
   message(i)
   activity_name <- gsub('.tcx', '',
